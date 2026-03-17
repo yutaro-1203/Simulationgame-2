@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>発展シミュレーションPRO+</title>
+
+<style>
+body{
+    margin:0;
+    font-family:sans-serif;
+    background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+    color:white;
+}
+
+h1{
+    text-align:center;
+    padding:10px;
+    margin:0;
+}
+
+.container{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+    gap:20px;
+    padding:20px;
+}
+
+.card{
+    background:rgba(255,255,255,0.05);
+    border-radius:15px;
+    padding:20px;
+}
+
+button,input{
+    width:100%;
+    margin-top:8px;
+    padding:10px;
+    border:none;
+    border-radius:8px;
+}
+
+button{
+    background:#00c6ff;
+    color:white;
+    cursor:pointer;
+}
+
+.stat{
+    margin:6px 0;
+    font-size:14px;
+}
+
+.small{
+    font-size:12px;
+    opacity:0.7;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🌍 発展シミュレーションPRO+</h1>
+
+<div class="container">
+
+<div class="card">
+<h2>採集</h2>
+<div class="stat">木材: <span id="wood">0</span></div>
+<div class="stat">石: <span id="stone">0</span></div>
+
+<button onclick="clickWood()">木材を集める</button>
+<div class="small">必要クリック: 5</div>
+
+<button onclick="clickStone()">石を集める</button>
+<div class="small">必要クリック: 8</div>
+
+<div class="stat">進行(木): <span id="wProg">0</span>/5</div>
+<div class="stat">進行(石): <span id="sProg">0</span>/8</div>
+</div>
+
+<div class="card">
+<h2>加工（製材所）</h2>
+<div class="stat">板材: <span id="plank">0</span></div>
+
+<div class="small">必要: 木材3 → 板材1</div>
+<div class="small">加工時間: <span id="timeInfo">3</span>秒</div>
+
+<div class="stat">状態: <span id="proc">待機中</span></div>
+<div class="stat">残り: <span id="remain">-</span></div>
+
+<button onclick="startProcess()">加工開始</button>
+
+<button onclick="upgradeFactory()">製材所UP</button>
+<div class="small" id="factoryCost"></div>
+</div>
+
+<div class="card">
+<h2>売却</h2>
+<div class="stat">💰: <span id="money">0</span></div>
+
+<input id="sellWood" type="number" placeholder="木材数">
+<button onclick="sell('wood')">木材売却 (1個=2)</button>
+
+<input id="sellStone" type="number" placeholder="石数">
+<button onclick="sell('stone')">石売却 (1個=3)</button>
+
+<input id="sellPlank" type="number" placeholder="板材数">
+<button onclick="sell('plank')">板材売却 (1個=8)</button>
+</div>
+
+<div class="card">
+<h2>アップグレード</h2>
+<button onclick="upgradeTool()">採集効率UP</button>
+<div class="small" id="toolCost"></div>
+<div class="stat">Lv: <span id="toolLv">1</span></div>
+</div>
+
+</div>
+
+<script>
+
+let wood=0, stone=0, plank=0, money=0;
+let wClick=0, sClick=0;
+let wNeed=5, sNeed=8;
+
+let processing=false;
+let speed=3000;
+let remain=0;
+let output=1;
+
+let toolLv=1, factoryLv=1;
+
+// 採集
+function clickWood(){
+    wClick++;
+    if(wClick>=wNeed){
+        wood+=toolLv;
+        wClick=0;
+    }
+    update();
+}
+
+function clickStone(){
+    sClick++;
+    if(sClick>=sNeed){
+        stone+=toolLv;
+        sClick=0;
+    }
+    update();
+}
+
+// 加工
+function startProcess(){
+    if(processing) return;
+    if(wood<3) return alert("木材が足りない");
+
+    wood-=3;
+    processing=true;
+    remain = speed/1000;
+
+    document.getElementById("proc").textContent="加工中";
+
+    let interval=setInterval(()=>{
+        remain--;
+        if(remain<=0){
+            clearInterval(interval);
+            plank+=output;
+            processing=false;
+            document.getElementById("proc").textContent="完了";
+            document.getElementById("remain").textContent="-";
+            update();
+        }else{
+            document.getElementById("remain").textContent=remain+"秒";
+        }
+    },1000);
+
+    update();
+}
+
+// 売却
+function sell(type){
+    let input=document.getElementById("sell"+type.charAt(0).toUpperCase()+type.slice(1));
+    let num=parseInt(input.value);
+    if(!num||num<=0) return;
+
+    if(type==="wood" && wood>=num){ wood-=num; money+=num*2; }
+    if(type==="stone" && stone>=num){ stone-=num; money+=num*3; }
+    if(type==="plank" && plank>=num){ plank-=num; money+=num*8; }
+
+    update();
+}
+
+// アップグレード
+function upgradeTool(){
+    let cost=toolLv*50;
+    if(money>=cost && wood>=10 && plank>=5){
+        money-=cost; wood-=10; plank-=5;
+        toolLv++;
+    }else alert("資源不足");
+    update();
+}
+
+function upgradeFactory(){
+    let cost=factoryLv*100;
+    if(money>=cost && plank>=10){
+        money-=cost; plank-=10;
+        factoryLv++;
+        speed*=0.8;
+        output++;
+    }else alert("資源不足");
+    update();
+}
+
+// 更新
+function update(){
+    document.getElementById("wood").textContent=wood;
+    document.getElementById("stone").textContent=stone;
+    document.getElementById("plank").textContent=plank;
+    document.getElementById("money").textContent=money;
+
+    document.getElementById("wProg").textContent=wClick;
+    document.getElementById("sProg").textContent=sClick;
+
+    document.getElementById("toolLv").textContent=toolLv;
+
+    document.getElementById("timeInfo").textContent=(speed/1000).toFixed(1);
+
+    document.getElementById("toolCost").textContent=
+        "必要: 💰"+(toolLv*50)+" / 木材10 / 板材5";
+
+    document.getElementById("factoryCost").textContent=
+        "必要: 💰"+(factoryLv*100)+" / 板材10";
+}
+
+update();
+
+</script>
+
+</body>
+</html>
