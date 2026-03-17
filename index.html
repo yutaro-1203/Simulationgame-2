@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>発展シミュレーション完成版</title>
+<title>発展シミュレーションFINAL</title>
 
 <style>
 body{
@@ -27,25 +27,26 @@ h1{ text-align:center; padding:10px; }
     padding:20px;
 }
 
-button{
+button,input{
     width:100%;
     margin-top:6px;
     padding:10px;
     border:none;
     border-radius:8px;
-    background:#00c6ff;
-    color:white;
-    cursor:pointer;
 }
 
+button{ background:#00c6ff; color:white; cursor:pointer; }
+
 .stat{ margin:5px 0; font-size:14px; }
+.small{ font-size:12px; opacity:0.7; }
 .locked{ opacity:0.3; }
+
 </style>
 </head>
 
 <body>
 
-<h1>🌍 発展シミュレーション完成版</h1>
+<h1>🌍 発展シミュレーションFINAL</h1>
 
 <div class="container">
 
@@ -60,8 +61,12 @@ button{
 <div class="stat">💰: <span id="money">0</span></div>
 
 <h3>手動採集</h3>
+
 <button onclick="clickWood()">木材</button>
+<div class="small">あと <span id="wNeedText"></span> 回</div>
+
 <button onclick="clickStone()">石</button>
+<div class="small">あと <span id="sNeedText"></span> 回</div>
 
 <div id="manualMine" class="locked">
 <button onclick="clickIron()">鉄鉱石</button>
@@ -69,26 +74,34 @@ button{
 </div>
 </div>
 
+<!-- 売却 -->
+<div class="card">
+<h2>売却</h2>
+
+<input id="sellWood" type="number" placeholder="木材">
+<button onclick="sell('wood')">木材 (×2)</button>
+
+<input id="sellStone" type="number" placeholder="石">
+<button onclick="sell('stone')">石 (×3)</button>
+
+<input id="sellIron" type="number" placeholder="鉄">
+<button onclick="sell('iron')">鉄 (×15)</button>
+
+</div>
+
 <!-- 自動 -->
 <div class="card">
 <h2>自動生産</h2>
 
-<div>
 <div class="stat">伐採所 Lv<span id="lumberLv">0</span></div>
 <button onclick="buildLumber()">建設(木20)</button>
-<button onclick="upLumber()">強化(💰50)</button>
-</div>
 
-<div>
 <div class="stat">石切場 Lv<span id="stoneLv">0</span></div>
 <button onclick="buildStone()">建設(石20)</button>
-<button onclick="upStone()">強化(💰50)</button>
-</div>
 
 <div id="mineArea" class="locked">
 <div class="stat">鉱山 Lv<span id="mineLv">0</span></div>
 <button onclick="buildMine()">建設(鉄10)</button>
-<button onclick="upMine()">強化(💰100)</button>
 </div>
 
 </div>
@@ -99,82 +112,132 @@ button{
 <button onclick="makeIron()">鉄生成（鉱石2＋石炭1）</button>
 </div>
 
-<!-- アップグレード -->
+<!-- 成長 -->
 <div class="card">
 <h2>成長</h2>
 <div class="stat">採集Lv: <span id="toolLv">1</span></div>
+<div class="stat">XP: <span id="xp">0</span></div>
+<div class="stat">RP: <span id="rp">0</span></div>
+
 <button onclick="upgradeTool()">LvUP(💰)</button>
+</div>
+
+<!-- 研究 -->
+<div class="card">
+<h2>研究</h2>
+
+<button onclick="research('eff')">効率化 (RP3)</button>
+<div class="small">採集量+1</div>
+
+<button onclick="research('trade')">交易 (RP3)</button>
+<div class="small">売却額UP</div>
+
+<button onclick="research('auto')">自動化 (RP5)</button>
+<div class="small">自動生産UP</div>
+
 </div>
 
 </div>
 
 <script>
 
-// 資源
+// ===== 資源 =====
 let wood=0, stone=0, ironOre=0, coal=0, iron=0, money=0;
 
-// レベル
+// ===== レベル・研究 =====
 let toolLv=1;
+let xp=0, level=1, rp=0;
 
-// 建物
+let researchData = {
+    eff:0,
+    trade:0,
+    auto:0
+};
+
+// ===== 建物 =====
 let lumberLv=0, stoneLv=0, mineLv=0;
 
-// ===== 手動採集 =====
+// ===== クリック制 =====
+let wClick=0, sClick=0;
+let wNeed=3, sNeed=5;
+
+// ===== XP =====
+function gainXP(a){
+    xp += a;
+    if(xp >= level*20){
+        xp=0;
+        level++;
+        rp++;
+    }
+}
+
+// ===== 手動 =====
 function clickWood(){
-    wood += 1 + toolLv;
+    wClick++;
+    if(wClick >= Math.max(1,wNeed-toolLv)){
+        wood += 1 + researchData.eff;
+        wClick=0;
+    }
+    gainXP(1);
     update();
 }
 
 function clickStone(){
-    stone += 1 + toolLv;
+    sClick++;
+    if(sClick >= Math.max(1,sNeed-toolLv)){
+        stone += 1 + researchData.eff;
+        sClick=0;
+    }
+    gainXP(1);
     update();
 }
 
 function clickIron(){
     if(toolLv<3) return;
-    ironOre += 1 + toolLv;
+    ironOre += 1 + researchData.eff;
+    gainXP(2);
     update();
 }
 
 function clickCoal(){
     if(toolLv<3) return;
-    coal += 1 + toolLv;
+    coal += 1 + researchData.eff;
+    gainXP(2);
     update();
 }
 
-// ===== 建設 =====
-function buildLumber(){
-    if(wood>=20){ wood-=20; lumberLv++; }
+// ===== 売却 =====
+function sell(type){
+    let input=document.getElementById("sell"+type.charAt(0).toUpperCase()+type.slice(1));
+    let num=parseInt(input.value);
+    if(!num||num<=0) return;
+
+    let bonus = 1 + researchData.trade;
+
+    if(type==="wood" && wood>=num){ wood-=num; money+=num*2*bonus; }
+    if(type==="stone" && stone>=num){ stone-=num; money+=num*3*bonus; }
+    if(type==="iron" && iron>=num){ iron-=num; money+=num*15*bonus; }
+
     update();
 }
 
-function buildStone(){
-    if(stone>=20){ stone-=20; stoneLv++; }
-    update();
-}
-
-function buildMine(){
-    if(iron>=10){ iron-=10; mineLv++; }
-    update();
-}
-
-// ===== 強化 =====
-function upLumber(){ if(money>=50){ money-=50; } }
-function upStone(){ if(money>=50){ money-=50; } }
-function upMine(){ if(money>=100){ money-=100; } }
-
-// ===== 自動生産 =====
+// ===== 自動 =====
 setInterval(()=>{
-    wood += lumberLv;
-    stone += stoneLv;
+    wood += lumberLv*(1+researchData.auto);
+    stone += stoneLv*(1+researchData.auto);
 
     if(toolLv>=3){
-        ironOre += mineLv;
-        coal += mineLv;
+        ironOre += mineLv*(1+researchData.auto);
+        coal += mineLv*(1+researchData.auto);
     }
 
     update();
 },1000);
+
+// ===== 建設 =====
+function buildLumber(){ if(wood>=20){ wood-=20; lumberLv++; } }
+function buildStone(){ if(stone>=20){ stone-=20; stoneLv++; } }
+function buildMine(){ if(iron>=10){ iron-=10; mineLv++; } }
 
 // ===== 加工 =====
 function makeIron(){
@@ -182,22 +245,26 @@ function makeIron(){
         ironOre-=2;
         coal-=1;
         iron++;
+        gainXP(3);
     }
     update();
 }
 
-// ===== 売却（簡易） =====
-setInterval(()=>{
-    money += iron;
-},3000);
-
-// ===== アップグレード =====
+// ===== 成長 =====
 function upgradeTool(){
-    let cost = toolLv*50;
+    let cost=toolLv*50;
     if(money>=cost){
         money-=cost;
         toolLv++;
     }
+    update();
+}
+
+// ===== 研究 =====
+function research(type){
+    if(type==="eff" && rp>=3){ rp-=3; researchData.eff++; }
+    if(type==="trade" && rp>=3){ rp-=3; researchData.trade++; }
+    if(type==="auto" && rp>=5){ rp-=5; researchData.auto++; }
     update();
 }
 
@@ -216,6 +283,14 @@ function update(){
     document.getElementById("mineLv").textContent=mineLv;
 
     document.getElementById("toolLv").textContent=toolLv;
+    document.getElementById("xp").textContent=xp;
+    document.getElementById("rp").textContent=rp;
+
+    document.getElementById("wNeedText").textContent =
+        Math.max(1,wNeed-toolLv)-wClick;
+
+    document.getElementById("sNeedText").textContent =
+        Math.max(1,sNeed-toolLv)-sClick;
 
     if(toolLv>=3){
         document.getElementById("mineArea").classList.remove("locked");
