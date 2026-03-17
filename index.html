@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>発展シミュレーションAUTO</title>
+<title>発展シミュレーション完成版</title>
 
 <style>
 body{
@@ -39,18 +39,17 @@ button{
 }
 
 .stat{ margin:5px 0; font-size:14px; }
-.small{ font-size:12px; opacity:0.7; }
 .locked{ opacity:0.3; }
-
 </style>
 </head>
 
 <body>
 
-<h1>🌍 発展シミュレーションAUTO</h1>
+<h1>🌍 発展シミュレーション完成版</h1>
 
 <div class="container">
 
+<!-- 資源 -->
 <div class="card">
 <h2>資源</h2>
 <div class="stat">木材: <span id="wood">0</span></div>
@@ -59,87 +58,125 @@ button{
 <div class="stat">石炭: <span id="coal">0</span></div>
 <div class="stat">鉄: <span id="iron">0</span></div>
 <div class="stat">💰: <span id="money">0</span></div>
+
+<h3>手動採集</h3>
+<button onclick="clickWood()">木材</button>
+<button onclick="clickStone()">石</button>
+
+<div id="manualMine" class="locked">
+<button onclick="clickIron()">鉄鉱石</button>
+<button onclick="clickCoal()">石炭</button>
+</div>
 </div>
 
+<!-- 自動 -->
 <div class="card">
 <h2>自動生産</h2>
 
 <div>
 <div class="stat">伐採所 Lv<span id="lumberLv">0</span></div>
-<div class="small">木材を<span id="lumberRate"></span>秒ごと</div>
-<button onclick="buildLumber()">建設（木材20）</button>
-<button onclick="upLumber()">強化（💰50）</button>
+<button onclick="buildLumber()">建設(木20)</button>
+<button onclick="upLumber()">強化(💰50)</button>
 </div>
 
 <div>
 <div class="stat">石切場 Lv<span id="stoneLv">0</span></div>
-<div class="small">石を<span id="stoneRate"></span>秒ごと</div>
-<button onclick="buildStone()">建設（石20）</button>
-<button onclick="upStone()">強化（💰50）</button>
+<button onclick="buildStone()">建設(石20)</button>
+<button onclick="upStone()">強化(💰50)</button>
 </div>
 
 <div id="mineArea" class="locked">
 <div class="stat">鉱山 Lv<span id="mineLv">0</span></div>
-<div class="small">鉄鉱石＆石炭を<span id="mineRate"></span>秒ごと</div>
-<button onclick="buildMine()">建設（鉄10）</button>
-<button onclick="upMine()">強化（💰100）</button>
+<button onclick="buildMine()">建設(鉄10)</button>
+<button onclick="upMine()">強化(💰100)</button>
 </div>
 
 </div>
 
+<!-- 加工 -->
 <div class="card">
 <h2>加工</h2>
-<button onclick="makeIron()">鉄生成（鉱石2+石炭1）</button>
+<button onclick="makeIron()">鉄生成（鉱石2＋石炭1）</button>
 </div>
 
+<!-- アップグレード -->
 <div class="card">
-<h2>アップグレード</h2>
+<h2>成長</h2>
 <div class="stat">採集Lv: <span id="toolLv">1</span></div>
-<button onclick="upgradeTool()">LvUP</button>
+<button onclick="upgradeTool()">LvUP(💰)</button>
 </div>
 
 </div>
 
 <script>
 
+// 資源
 let wood=0, stone=0, ironOre=0, coal=0, iron=0, money=0;
+
+// レベル
 let toolLv=1;
 
 // 建物
 let lumberLv=0, stoneLv=0, mineLv=0;
 
-// 速度（ミリ秒）
-let lumberSpeed=3000;
-let stoneSpeed=4000;
-let mineSpeed=5000;
+// ===== 手動採集 =====
+function clickWood(){
+    wood += 1 + toolLv;
+    update();
+}
 
-// 建設
-function buildLumber(){ if(wood>=20){ wood-=20; lumberLv++; } update(); }
-function buildStone(){ if(stone>=20){ stone-=20; stoneLv++; } update(); }
-function buildMine(){ if(iron>=10){ iron-=10; mineLv++; } update(); }
+function clickStone(){
+    stone += 1 + toolLv;
+    update();
+}
 
-// 強化
-function upLumber(){ if(money>=50){ money-=50; lumberSpeed*=0.9; } }
-function upStone(){ if(money>=50){ money-=50; stoneSpeed*=0.9; } }
-function upMine(){ if(money>=100){ money-=100; mineSpeed*=0.9; } }
+function clickIron(){
+    if(toolLv<3) return;
+    ironOre += 1 + toolLv;
+    update();
+}
 
-// 自動生産
+function clickCoal(){
+    if(toolLv<3) return;
+    coal += 1 + toolLv;
+    update();
+}
+
+// ===== 建設 =====
+function buildLumber(){
+    if(wood>=20){ wood-=20; lumberLv++; }
+    update();
+}
+
+function buildStone(){
+    if(stone>=20){ stone-=20; stoneLv++; }
+    update();
+}
+
+function buildMine(){
+    if(iron>=10){ iron-=10; mineLv++; }
+    update();
+}
+
+// ===== 強化 =====
+function upLumber(){ if(money>=50){ money-=50; } }
+function upStone(){ if(money>=50){ money-=50; } }
+function upMine(){ if(money>=100){ money-=100; } }
+
+// ===== 自動生産 =====
 setInterval(()=>{
     wood += lumberLv;
-},1000);
-
-setInterval(()=>{
     stone += stoneLv;
-},1000);
 
-setInterval(()=>{
     if(toolLv>=3){
         ironOre += mineLv;
         coal += mineLv;
     }
+
+    update();
 },1000);
 
-// 加工
+// ===== 加工 =====
 function makeIron(){
     if(ironOre>=2 && coal>=1){
         ironOre-=2;
@@ -149,20 +186,24 @@ function makeIron(){
     update();
 }
 
-// アップグレード
-function upgradeTool(){
-    let cost=toolLv*50;
-    if(money>=cost){ money-=cost; toolLv++; }
-    update();
-}
-
-// 売却（簡略）
+// ===== 売却（簡易） =====
 setInterval(()=>{
     money += iron;
 },3000);
 
-// 更新
+// ===== アップグレード =====
+function upgradeTool(){
+    let cost = toolLv*50;
+    if(money>=cost){
+        money-=cost;
+        toolLv++;
+    }
+    update();
+}
+
+// ===== 表示 =====
 function update(){
+
     document.getElementById("wood").textContent=wood;
     document.getElementById("stone").textContent=stone;
     document.getElementById("ironOre").textContent=ironOre;
@@ -174,14 +215,11 @@ function update(){
     document.getElementById("stoneLv").textContent=stoneLv;
     document.getElementById("mineLv").textContent=mineLv;
 
-    document.getElementById("lumberRate").textContent=(lumberSpeed/1000).toFixed(1);
-    document.getElementById("stoneRate").textContent=(stoneSpeed/1000).toFixed(1);
-    document.getElementById("mineRate").textContent=(mineSpeed/1000).toFixed(1);
-
     document.getElementById("toolLv").textContent=toolLv;
 
     if(toolLv>=3){
         document.getElementById("mineArea").classList.remove("locked");
+        document.getElementById("manualMine").classList.remove("locked");
     }
 }
 
