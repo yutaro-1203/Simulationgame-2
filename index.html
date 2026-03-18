@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>発展シミュレーションPRO MAX</title>
+<title>発展シミュレーションULTIMATE</title>
 
 <style>
 body{
@@ -27,79 +27,128 @@ h1{ text-align:center; padding:10px; }
     padding:20px;
 }
 
-button{
+button,input{
     width:100%;
     margin-top:6px;
     padding:10px;
     border:none;
     border-radius:8px;
-    background:#00c6ff;
-    color:white;
-    cursor:pointer;
 }
 
-.stat{ margin:5px 0; font-size:14px; }
+button{ background:#00c6ff; color:white; cursor:pointer; }
+
 .locked{ display:none; }
+
+/* 進行バー */
+.bar{
+    width:100%;
+    height:20px;
+    background:#333;
+    border-radius:10px;
+    overflow:hidden;
+    margin-top:10px;
+}
+
+.fill{
+    height:100%;
+    width:0%;
+    background:#00ffcc;
+}
 </style>
 </head>
 
 <body>
 
-<h1>🌍 発展シミュレーションPRO MAX</h1>
+<h1>🌍 発展シミュレーションULTIMATE</h1>
 
 <div class="container">
 
+<!-- 資源 -->
 <div class="card">
 <h2>資源</h2>
 木: <span id="wood">0</span><br>
 石: <span id="stone">0</span><br>
 板材: <span id="plank">0</span><br>
 レンガ: <span id="brick">0</span><br>
+
+<div id="ironArea" class="locked">
 鉄鉱石: <span id="ironOre">0</span><br>
 石炭: <span id="coal">0</span><br>
 鉄: <span id="iron">0</span><br>
+</div>
+
+<div id="steelArea" class="locked">
 鋼: <span id="steel">0</span><br>
+</div>
+
 💰: <span id="money">0</span><br>
 XP: <span id="xp">0</span>
 </div>
 
+<!-- 採集 -->
 <div class="card">
 <h2>採集</h2>
 <button onclick="clickWood()">木</button>
 <button onclick="clickStone()">石</button>
+
+<div id="mineBtns" class="locked">
 <button onclick="clickIron()">鉄鉱石</button>
 <button onclick="clickCoal()">石炭</button>
 </div>
+</div>
 
+<!-- 加工 -->
 <div class="card">
-<h2>加工（時間あり）</h2>
+<h2>加工</h2>
 
 <button onclick="process('plank')">板材(木3)</button>
 <button onclick="process('brick')">レンガ(石3)</button>
 
-<button onclick="process('iron')">鉄(鉱石2+石炭1)</button>
-<button onclick="process('steel')">鋼(鉄2+石炭2)</button>
-
-状態: <span id="proc">待機</span>
+<div id="ironBtn" class="locked">
+<button onclick="process('iron')">鉄</button>
 </div>
 
+<div id="steelBtn" class="locked">
+<button onclick="process('steel')">鋼</button>
+</div>
+
+<div class="bar">
+<div id="barFill" class="fill"></div>
+</div>
+
+<div id="status">待機</div>
+
+</div>
+
+<!-- 売却 -->
 <div class="card">
-<h2>自動加工</h2>
+<h2>売却</h2>
 
-<button onclick="toggleAuto('iron')">製鉄 ON/OFF</button>
-<button onclick="toggleAuto('steel')">製鋼 ON/OFF</button>
+<input id="sellWood" type="number" placeholder="木">
+<button onclick="sell('wood')">木 (×2)</button>
+
+<input id="sellPlank" type="number" placeholder="板材">
+<button onclick="sell('plank')">板材 (×5)</button>
+
+<input id="sellSteel" type="number" placeholder="鋼">
+<button onclick="sell('steel')">鋼 (×30)</button>
 
 </div>
 
+<!-- 解放 -->
+<div class="card">
+<h2>解放</h2>
+
+<button onclick="unlockMine()">鉱山解放 (板材10)</button>
+<button onclick="unlockSteel()">製鋼解放 (鉄10)</button>
+
+</div>
+
+<!-- 強化 -->
 <div class="card">
 <h2>強化</h2>
 <button onclick="upgradeTool()">採集強化</button>
 <button onclick="upgradeFactory()">加工強化</button>
-</div>
-
-<div class="card">
-<h2>XPスキル</h2>
-<button onclick="useXP()">採集効率UP (XP10)</button>
 </div>
 
 </div>
@@ -111,37 +160,43 @@ wood:0, stone:0, plank:0, brick:0,
 ironOre:0, coal:0, iron:0, steel:0,
 money:0, xp:0,
 toolLv:1, factoryLv:1,
-eff:0,
-autoIron:false,
-autoSteel:false,
+unlockedMine:false,
+unlockedSteel:false,
 processing:false
 };
 
 // ===== 採集 =====
-function clickWood(){ d.wood+=1+d.eff; gainXP(1); update(); }
-function clickStone(){ d.stone+=1+d.eff; gainXP(1); update(); }
-function clickIron(){ d.ironOre+=1+d.eff; gainXP(2); update(); }
-function clickCoal(){ d.coal+=1+d.eff; gainXP(2); update(); }
+function clickWood(){ d.wood++; gainXP(1); update(); }
+function clickStone(){ d.stone++; gainXP(1); update(); }
+function clickIron(){ if(d.unlockedMine){ d.ironOre++; gainXP(2); update(); }}
+function clickCoal(){ if(d.unlockedMine){ d.coal++; gainXP(2); update(); }}
 
 // ===== XP =====
 function gainXP(x){ d.xp+=x; }
 
-// ===== 加工 =====
+// ===== 加工（バー付き） =====
 function process(type){
     if(d.processing) return;
 
-    let time = 3000 / d.factoryLv;
     d.processing=true;
-    document.getElementById("proc").textContent="加工中";
+    let time = 3000 / d.factoryLv;
+    let start = Date.now();
+
+    let bar = document.getElementById("barFill");
+    document.getElementById("status").textContent="加工中";
+
+    let interval = setInterval(()=>{
+        let progress = (Date.now()-start)/time*100;
+        bar.style.width = progress+"%";
+    },50);
 
     setTimeout(()=>{
 
-        if(type==="plank" && d.wood>=3){
-            d.wood-=3; d.plank++;
-        }
-        if(type==="brick" && d.stone>=3){
-            d.stone-=3; d.brick++;
-        }
+        clearInterval(interval);
+        bar.style.width="0%";
+
+        if(type==="plank" && d.wood>=3){ d.wood-=3; d.plank++; }
+        if(type==="brick" && d.stone>=3){ d.stone-=3; d.brick++; }
         if(type==="iron" && d.ironOre>=2 && d.coal>=1){
             d.ironOre-=2; d.coal-=1; d.iron++;
         }
@@ -150,28 +205,38 @@ function process(type){
         }
 
         d.processing=false;
-        document.getElementById("proc").textContent="完了";
+        document.getElementById("status").textContent="完了";
         update();
 
     }, time);
 }
 
-// ===== 自動 =====
-function toggleAuto(type){
-    if(type==="iron") d.autoIron=!d.autoIron;
-    if(type==="steel") d.autoSteel=!d.autoSteel;
+// ===== 売却 =====
+function sell(type){
+    let num=parseInt(document.getElementById("sell"+type.charAt(0).toUpperCase()+type.slice(1)).value);
+    if(!num) return;
+
+    if(type==="wood" && d.wood>=num){ d.wood-=num; d.money+=num*2; }
+    if(type==="plank" && d.plank>=num){ d.plank-=num; d.money+=num*5; }
+    if(type==="steel" && d.steel>=num){ d.steel-=num; d.money+=num*30; }
+
+    update();
 }
 
-// 自動ループ
-setInterval(()=>{
-    if(d.autoIron && d.ironOre>=2 && d.coal>=1){
-        d.ironOre-=2; d.coal-=1; d.iron++;
+// ===== 解放 =====
+function unlockMine(){
+    if(d.plank>=10){
+        d.plank-=10;
+        d.unlockedMine=true;
     }
-    if(d.autoSteel && d.iron>=2 && d.coal>=2){
-        d.iron-=2; d.coal-=2; d.steel++;
+}
+
+function unlockSteel(){
+    if(d.iron>=10){
+        d.iron-=10;
+        d.unlockedSteel=true;
     }
-    update();
-},2000);
+}
 
 // ===== 強化 =====
 function upgradeTool(){
@@ -188,20 +253,24 @@ function upgradeFactory(){
     }
 }
 
-// ===== XP使用 =====
-function useXP(){
-    if(d.xp>=10){
-        d.xp-=10;
-        d.eff++;
-    }
-}
-
-// ===== 更新 =====
+// ===== 表示 =====
 function update(){
+
     for(let k in d){
         if(document.getElementById(k)){
             document.getElementById(k).textContent=d[k];
         }
+    }
+
+    if(d.unlockedMine){
+        document.getElementById("ironArea").classList.remove("locked");
+        document.getElementById("mineBtns").classList.remove("locked");
+        document.getElementById("ironBtn").classList.remove("locked");
+    }
+
+    if(d.unlockedSteel){
+        document.getElementById("steelArea").classList.remove("locked");
+        document.getElementById("steelBtn").classList.remove("locked");
     }
 }
 
