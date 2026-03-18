@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>発展シミュレーションFINAL</title>
+<title>発展シミュレーションPRO MAX</title>
 
 <style>
 body{
@@ -27,274 +27,181 @@ h1{ text-align:center; padding:10px; }
     padding:20px;
 }
 
-button,input{
+button{
     width:100%;
     margin-top:6px;
     padding:10px;
     border:none;
     border-radius:8px;
+    background:#00c6ff;
+    color:white;
+    cursor:pointer;
 }
 
-button{ background:#00c6ff; color:white; cursor:pointer; }
-
 .stat{ margin:5px 0; font-size:14px; }
-.small{ font-size:12px; opacity:0.7; }
-.locked{ opacity:0.3; }
-
+.locked{ display:none; }
 </style>
 </head>
 
 <body>
 
-<h1>🌍 発展シミュレーションFINAL</h1>
+<h1>🌍 発展シミュレーションPRO MAX</h1>
 
 <div class="container">
 
-<!-- 資源 -->
 <div class="card">
 <h2>資源</h2>
-<div class="stat">木材: <span id="wood">0</span></div>
-<div class="stat">石: <span id="stone">0</span></div>
-<div class="stat">鉄鉱石: <span id="ironOre">0</span></div>
-<div class="stat">石炭: <span id="coal">0</span></div>
-<div class="stat">鉄: <span id="iron">0</span></div>
-<div class="stat">💰: <span id="money">0</span></div>
+木: <span id="wood">0</span><br>
+石: <span id="stone">0</span><br>
+板材: <span id="plank">0</span><br>
+レンガ: <span id="brick">0</span><br>
+鉄鉱石: <span id="ironOre">0</span><br>
+石炭: <span id="coal">0</span><br>
+鉄: <span id="iron">0</span><br>
+鋼: <span id="steel">0</span><br>
+💰: <span id="money">0</span><br>
+XP: <span id="xp">0</span>
+</div>
 
-<h3>手動採集</h3>
-
-<button onclick="clickWood()">木材</button>
-<div class="small">あと <span id="wNeedText"></span> 回</div>
-
+<div class="card">
+<h2>採集</h2>
+<button onclick="clickWood()">木</button>
 <button onclick="clickStone()">石</button>
-<div class="small">あと <span id="sNeedText"></span> 回</div>
-
-<div id="manualMine" class="locked">
 <button onclick="clickIron()">鉄鉱石</button>
 <button onclick="clickCoal()">石炭</button>
 </div>
-</div>
 
-<!-- 売却 -->
 <div class="card">
-<h2>売却</h2>
+<h2>加工（時間あり）</h2>
 
-<input id="sellWood" type="number" placeholder="木材">
-<button onclick="sell('wood')">木材 (×2)</button>
+<button onclick="process('plank')">板材(木3)</button>
+<button onclick="process('brick')">レンガ(石3)</button>
 
-<input id="sellStone" type="number" placeholder="石">
-<button onclick="sell('stone')">石 (×3)</button>
+<button onclick="process('iron')">鉄(鉱石2+石炭1)</button>
+<button onclick="process('steel')">鋼(鉄2+石炭2)</button>
 
-<input id="sellIron" type="number" placeholder="鉄">
-<button onclick="sell('iron')">鉄 (×15)</button>
-
+状態: <span id="proc">待機</span>
 </div>
 
-<!-- 自動 -->
 <div class="card">
-<h2>自動生産</h2>
+<h2>自動加工</h2>
 
-<div class="stat">伐採所 Lv<span id="lumberLv">0</span></div>
-<button onclick="buildLumber()">建設(木20)</button>
-
-<div class="stat">石切場 Lv<span id="stoneLv">0</span></div>
-<button onclick="buildStone()">建設(石20)</button>
-
-<div id="mineArea" class="locked">
-<div class="stat">鉱山 Lv<span id="mineLv">0</span></div>
-<button onclick="buildMine()">建設(鉄10)</button>
-</div>
+<button onclick="toggleAuto('iron')">製鉄 ON/OFF</button>
+<button onclick="toggleAuto('steel')">製鋼 ON/OFF</button>
 
 </div>
 
-<!-- 加工 -->
 <div class="card">
-<h2>加工</h2>
-<button onclick="makeIron()">鉄生成（鉱石2＋石炭1）</button>
+<h2>強化</h2>
+<button onclick="upgradeTool()">採集強化</button>
+<button onclick="upgradeFactory()">加工強化</button>
 </div>
 
-<!-- 成長 -->
 <div class="card">
-<h2>成長</h2>
-<div class="stat">採集Lv: <span id="toolLv">1</span></div>
-<div class="stat">XP: <span id="xp">0</span></div>
-<div class="stat">RP: <span id="rp">0</span></div>
-
-<button onclick="upgradeTool()">LvUP(💰)</button>
-</div>
-
-<!-- 研究 -->
-<div class="card">
-<h2>研究</h2>
-
-<button onclick="research('eff')">効率化 (RP3)</button>
-<div class="small">採集量+1</div>
-
-<button onclick="research('trade')">交易 (RP3)</button>
-<div class="small">売却額UP</div>
-
-<button onclick="research('auto')">自動化 (RP5)</button>
-<div class="small">自動生産UP</div>
-
+<h2>XPスキル</h2>
+<button onclick="useXP()">採集効率UP (XP10)</button>
 </div>
 
 </div>
 
 <script>
 
-// ===== 資源 =====
-let wood=0, stone=0, ironOre=0, coal=0, iron=0, money=0;
-
-// ===== レベル・研究 =====
-let toolLv=1;
-let xp=0, level=1, rp=0;
-
-let researchData = {
-    eff:0,
-    trade:0,
-    auto:0
+let d = {
+wood:0, stone:0, plank:0, brick:0,
+ironOre:0, coal:0, iron:0, steel:0,
+money:0, xp:0,
+toolLv:1, factoryLv:1,
+eff:0,
+autoIron:false,
+autoSteel:false,
+processing:false
 };
 
-// ===== 建物 =====
-let lumberLv=0, stoneLv=0, mineLv=0;
-
-// ===== クリック制 =====
-let wClick=0, sClick=0;
-let wNeed=3, sNeed=5;
+// ===== 採集 =====
+function clickWood(){ d.wood+=1+d.eff; gainXP(1); update(); }
+function clickStone(){ d.stone+=1+d.eff; gainXP(1); update(); }
+function clickIron(){ d.ironOre+=1+d.eff; gainXP(2); update(); }
+function clickCoal(){ d.coal+=1+d.eff; gainXP(2); update(); }
 
 // ===== XP =====
-function gainXP(a){
-    xp += a;
-    if(xp >= level*20){
-        xp=0;
-        level++;
-        rp++;
-    }
-}
+function gainXP(x){ d.xp+=x; }
 
-// ===== 手動 =====
-function clickWood(){
-    wClick++;
-    if(wClick >= Math.max(1,wNeed-toolLv)){
-        wood += 1 + researchData.eff;
-        wClick=0;
-    }
-    gainXP(1);
-    update();
-}
+// ===== 加工 =====
+function process(type){
+    if(d.processing) return;
 
-function clickStone(){
-    sClick++;
-    if(sClick >= Math.max(1,sNeed-toolLv)){
-        stone += 1 + researchData.eff;
-        sClick=0;
-    }
-    gainXP(1);
-    update();
-}
+    let time = 3000 / d.factoryLv;
+    d.processing=true;
+    document.getElementById("proc").textContent="加工中";
 
-function clickIron(){
-    if(toolLv<3) return;
-    ironOre += 1 + researchData.eff;
-    gainXP(2);
-    update();
-}
+    setTimeout(()=>{
 
-function clickCoal(){
-    if(toolLv<3) return;
-    coal += 1 + researchData.eff;
-    gainXP(2);
-    update();
-}
+        if(type==="plank" && d.wood>=3){
+            d.wood-=3; d.plank++;
+        }
+        if(type==="brick" && d.stone>=3){
+            d.stone-=3; d.brick++;
+        }
+        if(type==="iron" && d.ironOre>=2 && d.coal>=1){
+            d.ironOre-=2; d.coal-=1; d.iron++;
+        }
+        if(type==="steel" && d.iron>=2 && d.coal>=2){
+            d.iron-=2; d.coal-=2; d.steel++;
+        }
 
-// ===== 売却 =====
-function sell(type){
-    let input=document.getElementById("sell"+type.charAt(0).toUpperCase()+type.slice(1));
-    let num=parseInt(input.value);
-    if(!num||num<=0) return;
+        d.processing=false;
+        document.getElementById("proc").textContent="完了";
+        update();
 
-    let bonus = 1 + researchData.trade;
-
-    if(type==="wood" && wood>=num){ wood-=num; money+=num*2*bonus; }
-    if(type==="stone" && stone>=num){ stone-=num; money+=num*3*bonus; }
-    if(type==="iron" && iron>=num){ iron-=num; money+=num*15*bonus; }
-
-    update();
+    }, time);
 }
 
 // ===== 自動 =====
+function toggleAuto(type){
+    if(type==="iron") d.autoIron=!d.autoIron;
+    if(type==="steel") d.autoSteel=!d.autoSteel;
+}
+
+// 自動ループ
 setInterval(()=>{
-    wood += lumberLv*(1+researchData.auto);
-    stone += stoneLv*(1+researchData.auto);
-
-    if(toolLv>=3){
-        ironOre += mineLv*(1+researchData.auto);
-        coal += mineLv*(1+researchData.auto);
+    if(d.autoIron && d.ironOre>=2 && d.coal>=1){
+        d.ironOre-=2; d.coal-=1; d.iron++;
     }
-
-    update();
-},1000);
-
-// ===== 建設 =====
-function buildLumber(){ if(wood>=20){ wood-=20; lumberLv++; } }
-function buildStone(){ if(stone>=20){ stone-=20; stoneLv++; } }
-function buildMine(){ if(iron>=10){ iron-=10; mineLv++; } }
-
-// ===== 加工 =====
-function makeIron(){
-    if(ironOre>=2 && coal>=1){
-        ironOre-=2;
-        coal-=1;
-        iron++;
-        gainXP(3);
+    if(d.autoSteel && d.iron>=2 && d.coal>=2){
+        d.iron-=2; d.coal-=2; d.steel++;
     }
     update();
-}
+},2000);
 
-// ===== 成長 =====
+// ===== 強化 =====
 function upgradeTool(){
-    let cost=toolLv*50;
-    if(money>=cost){
-        money-=cost;
-        toolLv++;
+    if(d.money>=50 && d.plank>=5){
+        d.money-=50; d.plank-=5;
+        d.toolLv++;
     }
-    update();
 }
 
-// ===== 研究 =====
-function research(type){
-    if(type==="eff" && rp>=3){ rp-=3; researchData.eff++; }
-    if(type==="trade" && rp>=3){ rp-=3; researchData.trade++; }
-    if(type==="auto" && rp>=5){ rp-=5; researchData.auto++; }
-    update();
+function upgradeFactory(){
+    if(d.money>=100 && d.brick>=5 && d.iron>=3){
+        d.money-=100; d.brick-=5; d.iron-=3;
+        d.factoryLv++;
+    }
 }
 
-// ===== 表示 =====
+// ===== XP使用 =====
+function useXP(){
+    if(d.xp>=10){
+        d.xp-=10;
+        d.eff++;
+    }
+}
+
+// ===== 更新 =====
 function update(){
-
-    document.getElementById("wood").textContent=wood;
-    document.getElementById("stone").textContent=stone;
-    document.getElementById("ironOre").textContent=ironOre;
-    document.getElementById("coal").textContent=coal;
-    document.getElementById("iron").textContent=iron;
-    document.getElementById("money").textContent=money;
-
-    document.getElementById("lumberLv").textContent=lumberLv;
-    document.getElementById("stoneLv").textContent=stoneLv;
-    document.getElementById("mineLv").textContent=mineLv;
-
-    document.getElementById("toolLv").textContent=toolLv;
-    document.getElementById("xp").textContent=xp;
-    document.getElementById("rp").textContent=rp;
-
-    document.getElementById("wNeedText").textContent =
-        Math.max(1,wNeed-toolLv)-wClick;
-
-    document.getElementById("sNeedText").textContent =
-        Math.max(1,sNeed-toolLv)-sClick;
-
-    if(toolLv>=3){
-        document.getElementById("mineArea").classList.remove("locked");
-        document.getElementById("manualMine").classList.remove("locked");
+    for(let k in d){
+        if(document.getElementById(k)){
+            document.getElementById(k).textContent=d[k];
+        }
     }
 }
 
